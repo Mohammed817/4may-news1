@@ -11,9 +11,3 @@
     }
   ]
 }
-300, stale-while-revalidate=60"
-        }
-      ]
-    }
-  ]
-}
