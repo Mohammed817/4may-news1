@@ -2,6 +2,7 @@
   "name": "4may-news-vercel",
   "version": "1.0.0",
   "description": "موقع أخبار متزامن مع المصدر الأصلي",
+  "type": "module",
   "main": "api/news.js",
   "dependencies": {
     "cheerio": "^1.0.0-rc.12"
