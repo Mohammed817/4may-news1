@@ -1,0 +1,52 @@
+import * as cheerio from 'cheerio';
+
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=60'); // كاش لمدة 5 دقائق
+
+  try {
+    // جلب الصفحة الرئيسية للموقع الأصلي
+    const response = await fetch('https://www.4may.net/', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'ar-YE,ar;q=0.9'
+      }
+    });
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const html = await response.text();
+    const $ = cheerio.load(html);
+    const items = [];
+    const seen = new Set();
+
+    // استخراج الأخبار من الصفحة الرئيسية
+    // نبحث عن الروابط التي تحتوي على /Mnews/ لضمان أنها روابط أخبار
+    $('a[href*="/Mnews/"]').each((_, el) => {
+      const title = $(el).text().replace(/\s+/g, ' ').trim();
+      let href = $(el).attr('href') || '';
+
+      // تجاهل العناوين القصيرة جداً أو الروابط المكررة
+      if (title.length < 15) return;
+      
+      if (!href.startsWith('http')) {
+        href = 'https://www.4may.net' + (href.startsWith('/') ? '' : '/') + href;
+      }
+
+      if (!seen.has(href)) {
+        seen.add(href);
+        items.push({ title, url: href });
+      }
+    });
+
+    // إرسال أول 6 أخبار فقط (لتطابق تصميمك)
+    return res.status(200).json({
+      success: true,
+      items: items.slice(0, 6)
+    });
+
+  } catch (error) {
+    console.error('Error:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+}
