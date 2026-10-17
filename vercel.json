@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "routes": [
+    {
+      "src": "/api/news",
+      "dest": "/api/news.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
+}
+300, stale-while-revalidate=60"
+        }
+      ]
+    }
+  ]
+}
