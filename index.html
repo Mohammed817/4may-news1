@@ -113,46 +113,47 @@
     <script>
         async function fetchSynchronizedNews() {
             const container = document.getElementById('sync-news-container');
-            
             try {
-                // طلب البيانات من الـ API الخاص بنا
-                const response = await fetch('/api/news');
+                // منع المتصفح من استخدام استجابة قديمة، مع تحديث الخادم كل دقيقة.
+                const response = await fetch('/api/news?refresh=' + Date.now(), { cache: 'no-store' });
+                if (!response.ok) throw new Error('تعذر جلب الأخبار: HTTP ' + response.status);
                 const result = await response.json();
 
-                if (result.success && result.items && result.items.length > 0) {
-                    container.innerHTML = ''; // مسح كلمة "جاري التحميل"
-
-                    // بناء القائمة الجديدة بناءً على الأخبار المسحوبة
-                    result.items.forEach(item => {
-                        const li = document.createElement('li');
-                        li.className = 'sync-news-item';
-
-                        const a = document.createElement('a');
-                        a.href = item.url;
-                        a.target = '_blank';
-                        a.rel = 'noopener noreferrer';
-                        a.textContent = item.title;
-
-                        li.appendChild(a);
-                        container.appendChild(li);
-                    });
-                } else {
-                    container.innerHTML = '<li class="loading-text">لا توجد أخبار جديدة حالياً.</li>';
+                if (!result.success || !Array.isArray(result.items) || result.items.length === 0) {
+                    throw new Error(result.error || 'لم تصل عناوين أخبار من المصدر');
                 }
+
+                const fragment = document.createDocumentFragment();
+                result.items.forEach(item => {
+                    if (!item || !item.title || !item.url) return;
+                    const li = document.createElement('li');
+                    li.className = 'sync-news-item';
+                    const a = document.createElement('a');
+                    a.href = item.url;
+                    a.target = '_blank';
+                    a.rel = 'noopener noreferrer';
+                    a.textContent = item.title;
+                    li.appendChild(a);
+                    fragment.appendChild(li);
+                });
+
+                if (fragment.childNodes.length) container.replaceChildren(fragment);
+                container.dataset.lastUpdated = result.updatedAt || new Date().toISOString();
             } catch (error) {
-                console.error('خطأ في جلب الأخبار:', error);
-                // في حال حدوث خطأ، نترك الأخبار القديمة إن وجدت أو نعرض رسالة
-                if (container.children.length === 1 && container.children[0].classList.contains('loading-text')) {
-                    container.innerHTML = '<li class="loading-text">تعذر التزامن مع المصدر حالياً.</li>';
+                console.error('تعذر تحديث أخبار صحيفة 4 مايو:', error);
+                // لا نمسح العناوين الناجحة السابقة عند تعطل المصدر مؤقتاً.
+                if (!container.querySelector('.sync-news-item')) {
+                    const li = document.createElement('li');
+                    li.className = 'loading-text';
+                    li.textContent = 'تعذر جلب الأخبار الآن. ستتم إعادة المحاولة تلقائياً.';
+                    container.replaceChildren(li);
                 }
             }
         }
 
-        // تشغيل الجلب فور فتح الصفحة
         fetchSynchronizedNews();
-
-        // إعادة التزامن تلقائياً كل 5 دقائق (300000 ملي ثانية)
-        setInterval(fetchSynchronizedNews, 300000);
+        // تحديث تلقائي كل دقيقة، دون الحاجة إلى إعادة تحميل الصفحة.
+        setInterval(fetchSynchronizedNews, 60000);
     </script>
 
 </body>
