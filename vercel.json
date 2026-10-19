@@ -1,13 +1,3 @@
 {
-  "version": 2,
-  "routes": [
-    {
-      "src": "/api/news",
-      "dest": "/api/news.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ]
+  "version": 2
 }
